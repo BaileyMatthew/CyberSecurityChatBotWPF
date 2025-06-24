@@ -13,9 +13,10 @@ namespace CybersecurityBot.Bot
         private string lastQuestionAsked = null;
         private bool awaitingYesNo = false;
         private bool awaitingMoodResponse = false;
-
-        // New flag to track yes/no answer specifically for reminders
         private bool awaitingReminderYesNo = false;
+
+        private TaskItem lastTaskAdded = null;
+        private readonly List<string> actionHistory = new List<string>();
 
         public ChatBot()
         {
@@ -29,84 +30,133 @@ namespace CybersecurityBot.Bot
 
             string input = userInput.ToLower().Trim();
 
-            // ==== HANDLE REMINDER YES/NO FIRST ====
+            // === Handle "remind me to ___ tomorrow"
+            if (input.StartsWith("remind me to") && input.Contains("tomorrow"))
+            {
+                string taskText = input.Replace("remind me to", "")
+                                       .Replace("tomorrow", "")
+                                       .Trim();
+
+                if (string.IsNullOrWhiteSpace(taskText))
+                    return "What should I remind you to do?";
+
+                DateTime reminderDate = DateTime.Now.AddDays(1);
+                TaskManager.AddTask(taskText, taskText, reminderDate);
+                string confirmation = $"Reminder set for '{taskText}' on tomorrow's date.";
+                actionHistory.Add(confirmation);
+                return confirmation;
+            }
+
+            // === Awaiting yes/no for reminder
             if (awaitingReminderYesNo)
             {
                 if (input.Contains("yes"))
                 {
                     awaitingReminderYesNo = false;
-                    // You could ask for details here, or user can say "remind me in X days"
-                    return "Sure! When would you like me to remind you? Please specify in days (e.g., 'remind me in 3 days').";
+                    return "Great! When should I remind you? (e.g., say 'remind me in 3 days')";
                 }
                 else if (input.Contains("no"))
                 {
                     awaitingReminderYesNo = false;
-                    return "Perfect, what can I help you with next?";
+
+                    if (lastTaskAdded != null)
+                        actionHistory.Add($"Task added: '{lastTaskAdded.Title}' (no reminder set).");
+
+                    lastTaskAdded = null;
+                    return "Okay, no reminder set. What next?";
                 }
                 else
                 {
-                    return "Please answer with 'yes' or 'no'. Would you like a reminder?";
+                    return "Please answer with 'yes' or 'no'. Would you like a reminder for this task?";
                 }
             }
 
-            // ==== TASK MANAGEMENT COMMANDS ====
-
-            if (input.StartsWith("add task"))
-            {
-                string taskText = input.Replace("add task", "").Trim();
-                if (string.IsNullOrWhiteSpace(taskText))
-                    return "Please provide a title or description for the task.";
-
-                // Add task
-                TaskManager.AddTask(taskText, $"Task added: {taskText}");
-                // Ask if user wants a reminder
-                awaitingReminderYesNo = true;
-                return $"Task added with the description \"{taskText}\". Would you like a reminder?";
-            }
-
+            // === Set reminder like "remind me in 3 days"
             if (input.StartsWith("remind me in"))
             {
-                if (!TaskManager.ListTasks().Any())
-                    return "You need to add a task first.";
-
                 int days = int.TryParse(Regex.Match(input, @"\d+").Value, out int d) ? d : 0;
-                if (days <= 0) return "Please enter a valid number of days.";
+                if (days <= 0) return "Please say how many days, like 'remind me in 3 days'.";
 
-                // Add reminder to the last task
-                var lastTask = typeof(TaskManager).GetField("Tasks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                                                  .GetValue(null) as List<TaskItem>;
-
-                if (lastTask != null && lastTask.Any())
+                if (lastTaskAdded != null)
                 {
-                    lastTask.Last().ReminderDate = DateTime.Now.AddDays(days);
-                    return $"Got it! I'll remind you in {days} days.";
+                    lastTaskAdded.ReminderDate = DateTime.Now.AddDays(days);
+                    string response = $"Reminder set for '{lastTaskAdded.Title}' in {days} day(s).";
+                    actionHistory.Add(response);
+                    lastTaskAdded = null;
+                    return response;
                 }
-                return "Sorry, I couldn't find any tasks to remind you about.";
+
+                var latest = TaskManager.GetLastTask();
+                if (latest != null)
+                {
+                    latest.ReminderDate = DateTime.Now.AddDays(days);
+                    string response = $"Reminder set for '{latest.Title}' in {days} day(s).";
+                    actionHistory.Add(response);
+                    return response;
+                }
+
+                return "I couldn't find a task to remind you about.";
             }
 
+            // === Add Task Logic
+            if (input.StartsWith("add a task") || input.StartsWith("add task"))
+            {
+                string taskText = input.Replace("add a task", "")
+                                       .Replace("add task", "").Trim();
+
+                if (string.IsNullOrWhiteSpace(taskText))
+                    return "Please provide a title for the task.";
+
+                TaskManager.AddTask(taskText, taskText);
+                lastTaskAdded = TaskManager.GetLastTask();
+                awaitingReminderYesNo = true;
+                return $"Task added: '{taskText}'. Would you like to set a reminder for this task?";
+            }
+
+            // === View task list
             if (input == "view tasks")
             {
-                var tasks = TaskManager.ListTasks();
-                if (!tasks.Any())
-                    return "You have no tasks at the moment.";
-                return string.Join("\n", tasks);
+                string result = TaskManager.ListTasks();
+                if (!string.IsNullOrWhiteSpace(result))
+                    actionHistory.Add("Viewed task list.");
+                return result;
             }
 
+            // === Complete task
             if (input.StartsWith("complete task"))
             {
                 int taskNum = int.TryParse(Regex.Match(input, @"\d+").Value, out int n) ? n : -1;
-                return TaskManager.CompleteTask(taskNum);
+                string result = TaskManager.CompleteTask(taskNum);
+                if (!result.StartsWith("Invalid"))
+                    actionHistory.Add($"Marked task {taskNum} as complete.");
+                return result;
             }
 
+            // === Delete task
             if (input.StartsWith("delete task"))
             {
                 int taskNum = int.TryParse(Regex.Match(input, @"\d+").Value, out int n) ? n : -1;
-                return TaskManager.DeleteTask(taskNum);
+                string result = TaskManager.DeleteTask(taskNum);
+                if (!result.StartsWith("Invalid"))
+                    actionHistory.Add($"Deleted task {taskNum}.");
+                return result;
             }
 
-            // ==== EXISTING CHATBOT LOGIC ====
+            // === Summary of recent actions (more flexible wording)
+            if (Regex.IsMatch(input, @"(what\s+have\s+you\s+done)|(summary\s+of\s+actions)|(recent\s+tasks)", RegexOptions.IgnoreCase))
+            {
+                if (actionHistory.Count == 0)
+                    return "I haven't done anything yet.";
 
-            // Small talk - "how are you"
+                string summary = "Here's a summary of recent actions:\n";
+                for (int i = 0; i < actionHistory.Count; i++)
+                {
+                    summary += $"{i + 1}. {actionHistory[i]}\n";
+                }
+                return summary.TrimEnd();
+            }
+
+            // === Small talk
             if (input.Contains("how are you"))
             {
                 awaitingMoodResponse = true;
@@ -127,7 +177,7 @@ namespace CybersecurityBot.Bot
                 }
             }
 
-            // Check for yes/no while waiting
+            // === Follow-up yes/no to a topic
             if (awaitingYesNo)
             {
                 if (input.Contains("yes"))
@@ -142,7 +192,7 @@ namespace CybersecurityBot.Bot
                 }
             }
 
-            // Detect topic + emotion
+            // === NLP-style detection
             string topic = responseManager.DetectTopic(input);
             string emotion = responseManager.DetectEmotion(input);
 
@@ -163,7 +213,7 @@ namespace CybersecurityBot.Bot
                 return response;
             }
 
-            // Fallback
+            // === Fallback
             return responseManager.GetFallbackResponse();
         }
     }

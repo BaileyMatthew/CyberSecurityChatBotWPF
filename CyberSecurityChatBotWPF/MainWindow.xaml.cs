@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 using CybersecurityBot.Bot;
-using CyberSecurityChatBotWPF.Views; // ✅ FIXED NAMESPACE (match QuizWindow)
+using CyberSecurityChatBotWPF.Views;
 
 namespace CyberSecurityChatBotWPF
 {
@@ -24,7 +24,6 @@ namespace CyberSecurityChatBotWPF
             if (string.IsNullOrEmpty(input)) return;
 
             AppendUserMessage(input);
-
             string response = bot.GetResponse(input);
             await TypeBotMessageAsync(response);
 

@@ -6,7 +6,6 @@ public static class TaskManager
 {
     private static readonly List<TaskItem> Tasks = new List<TaskItem>();
 
-
     public static void AddTask(string title, string description, DateTime? reminder = null)
     {
         Tasks.Add(new TaskItem
@@ -28,10 +27,10 @@ public static class TaskManager
         {
             string status = task.IsCompleted ? "✅" : "❌";
             string reminder = task.ReminderDate.HasValue
-                ? $" | Reminder: {task.ReminderDate.Value.ToShortDateString()}"
+                ? $" | Reminder: {task.ReminderDate.Value:yyyy-MM-dd}"
                 : "";
 
-            result += $"{i}. {task.Title} - {task.Description} {reminder} [{status}]\n";
+            result += $"{i}. {task.Title} - {task.Description}{reminder} [{status}]\n";
             i++;
         }
 
@@ -54,5 +53,15 @@ public static class TaskManager
 
         Tasks.RemoveAt(index - 1);
         return $"Task {index} deleted.";
+    }
+
+    public static TaskItem GetLastTask()
+    {
+        return Tasks.LastOrDefault();
+    }
+
+    public static bool HasTasks()
+    {
+        return Tasks.Any();
     }
 }
