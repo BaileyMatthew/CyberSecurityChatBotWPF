@@ -15,6 +15,11 @@ public static class TaskManager
             ReminderDate = reminder,
             IsCompleted = false
         });
+
+        if (reminder.HasValue)
+            ActivityLogger.Log($"Task added: '{title}' (Reminder set for {reminder.Value:yyyy-MM-dd}).");
+        else
+            ActivityLogger.Log($"Task added: '{title}'.");
     }
 
     public static string ListTasks()
@@ -43,6 +48,7 @@ public static class TaskManager
             return "Invalid task number.";
 
         Tasks[index - 1].IsCompleted = true;
+        ActivityLogger.Log($"Task {index} marked as completed.");
         return $"Task {index} marked as completed.";
     }
 
@@ -51,7 +57,9 @@ public static class TaskManager
         if (index < 1 || index > Tasks.Count)
             return "Invalid task number.";
 
+        var title = Tasks[index - 1].Title;
         Tasks.RemoveAt(index - 1);
+        ActivityLogger.Log($"Task {index} ('{title}') deleted.");
         return $"Task {index} deleted.";
     }
 

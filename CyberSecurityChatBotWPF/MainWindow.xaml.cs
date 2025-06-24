@@ -25,6 +25,13 @@ namespace CyberSecurityChatBotWPF
 
             AppendUserMessage(input);
             string response = bot.GetResponse(input);
+
+            // Nicely format activity log output
+            if (response.StartsWith("Here's a summary of recent actions:"))
+            {
+                response = response.Replace("\n", "\n🤖 Bot: ");
+            }
+
             await TypeBotMessageAsync(response);
 
             UserInput.Clear();

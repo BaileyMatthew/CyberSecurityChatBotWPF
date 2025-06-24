@@ -16,7 +16,6 @@ namespace CybersecurityBot.Bot
         private bool awaitingReminderYesNo = false;
 
         private TaskItem lastTaskAdded = null;
-        private readonly List<string> actionHistory = new List<string>();
 
         public ChatBot()
         {
@@ -29,6 +28,12 @@ namespace CybersecurityBot.Bot
                 return "Please say something.";
 
             string input = userInput.ToLower().Trim();
+
+            // === Show activity log command
+            if (Regex.IsMatch(input, @"(show|display|what\s+have\s+you\s+done|activity\s+log|recent\s+actions)", RegexOptions.IgnoreCase))
+            {
+                return ActivityLogger.GetRecentLog();
+            }
 
             // === Handle "remind me to ___ tomorrow"
             if (input.StartsWith("remind me to") && input.Contains("tomorrow"))
@@ -43,7 +48,7 @@ namespace CybersecurityBot.Bot
                 DateTime reminderDate = DateTime.Now.AddDays(1);
                 TaskManager.AddTask(taskText, taskText, reminderDate);
                 string confirmation = $"Reminder set for '{taskText}' on tomorrow's date.";
-                actionHistory.Add(confirmation);
+                ActivityLogger.Log(confirmation);
                 return confirmation;
             }
 
@@ -60,7 +65,7 @@ namespace CybersecurityBot.Bot
                     awaitingReminderYesNo = false;
 
                     if (lastTaskAdded != null)
-                        actionHistory.Add($"Task added: '{lastTaskAdded.Title}' (no reminder set).");
+                        ActivityLogger.Log($"Task added: '{lastTaskAdded.Title}' (no reminder set).");
 
                     lastTaskAdded = null;
                     return "Okay, no reminder set. What next?";
@@ -81,7 +86,7 @@ namespace CybersecurityBot.Bot
                 {
                     lastTaskAdded.ReminderDate = DateTime.Now.AddDays(days);
                     string response = $"Reminder set for '{lastTaskAdded.Title}' in {days} day(s).";
-                    actionHistory.Add(response);
+                    ActivityLogger.Log(response);
                     lastTaskAdded = null;
                     return response;
                 }
@@ -91,7 +96,7 @@ namespace CybersecurityBot.Bot
                 {
                     latest.ReminderDate = DateTime.Now.AddDays(days);
                     string response = $"Reminder set for '{latest.Title}' in {days} day(s).";
-                    actionHistory.Add(response);
+                    ActivityLogger.Log(response);
                     return response;
                 }
 
@@ -118,7 +123,7 @@ namespace CybersecurityBot.Bot
             {
                 string result = TaskManager.ListTasks();
                 if (!string.IsNullOrWhiteSpace(result))
-                    actionHistory.Add("Viewed task list.");
+                    ActivityLogger.Log("Viewed task list.");
                 return result;
             }
 
@@ -128,7 +133,7 @@ namespace CybersecurityBot.Bot
                 int taskNum = int.TryParse(Regex.Match(input, @"\d+").Value, out int n) ? n : -1;
                 string result = TaskManager.CompleteTask(taskNum);
                 if (!result.StartsWith("Invalid"))
-                    actionHistory.Add($"Marked task {taskNum} as complete.");
+                    ActivityLogger.Log($"Marked task {taskNum} as complete.");
                 return result;
             }
 
@@ -138,22 +143,8 @@ namespace CybersecurityBot.Bot
                 int taskNum = int.TryParse(Regex.Match(input, @"\d+").Value, out int n) ? n : -1;
                 string result = TaskManager.DeleteTask(taskNum);
                 if (!result.StartsWith("Invalid"))
-                    actionHistory.Add($"Deleted task {taskNum}.");
+                    ActivityLogger.Log($"Deleted task {taskNum}.");
                 return result;
-            }
-
-            // === Summary of recent actions (more flexible wording)
-            if (Regex.IsMatch(input, @"(what\s+have\s+you\s+done)|(summary\s+of\s+actions)|(recent\s+tasks)", RegexOptions.IgnoreCase))
-            {
-                if (actionHistory.Count == 0)
-                    return "I haven't done anything yet.";
-
-                string summary = "Here's a summary of recent actions:\n";
-                for (int i = 0; i < actionHistory.Count; i++)
-                {
-                    summary += $"{i + 1}. {actionHistory[i]}\n";
-                }
-                return summary.TrimEnd();
             }
 
             // === Small talk

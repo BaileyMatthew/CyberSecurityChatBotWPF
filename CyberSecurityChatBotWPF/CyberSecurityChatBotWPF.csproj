@@ -96,6 +96,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ChatBotGUI\ActivityLogger.cs" />
     <Compile Include="ChatBotGUI\CyberQuizManager.cs" />
     <Compile Include="ChatBotGUI\TaskItem.cs" />
     <Compile Include="ChatBotGUI\TaskManager.cs" />

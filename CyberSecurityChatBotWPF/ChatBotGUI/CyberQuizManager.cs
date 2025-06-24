@@ -1,5 +1,4 @@
-﻿// CyberQuizManager.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace CybersecurityBot.Helpers
@@ -24,6 +23,7 @@ namespace CybersecurityBot.Helpers
             IsQuizActive = true;
             currentQuestionIndex = 0;
             score = 0;
+            ActivityLogger.Log($"Quiz started with {questions.Count} questions.");
         }
 
         public string GetNextQuestion()
@@ -61,6 +61,8 @@ namespace CybersecurityBot.Helpers
         {
             IsQuizActive = false;
             string result = $"Quiz complete! Your score: {score}/{questions.Count}\n";
+
+            ActivityLogger.Log($"Quiz completed. Score: {score}/{questions.Count}.");
 
             if (score >= 8)
                 result += "Great job! You're a cybersecurity pro!";
