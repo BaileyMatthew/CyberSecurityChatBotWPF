@@ -1,28 +1,75 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using CybersecurityBot.Bot;
+using CybersecurityBot.Helpers;
 
 namespace CyberSecurityChatBotWPF
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        private ChatBot bot;
+
         public MainWindow()
         {
             InitializeComponent();
+            bot = new ChatBot();
+
+            AppendBotMessage("Hello! I'm your Cybersecurity Assistant. 💻\nAsk me anything about phishing, malware, VPNs, and more.");
+
+            Loaded += (s, e) => UserInput.Focus(); // Auto-focus on input box
+        }
+
+        private async void SendButton_Click(object sender, RoutedEventArgs e)
+        {
+            string input = UserInput.Text.Trim();
+            if (string.IsNullOrEmpty(input)) return;
+
+            AppendUserMessage(input);
+
+            string response = bot.GetResponse(input);
+            await TypeBotMessageAsync(response);
+
+            UserInput.Clear();
+            UserInput.Focus();
+        }
+
+        private void UserInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendButton_Click(sender, e);
+                e.Handled = true; // Prevent beep sound
+            }
+        }
+
+        private void AppendUserMessage(string message)
+        {
+            ChatDisplay.Text += $"\n👤 You: {message}\n";
+            ScrollToEnd();
+        }
+
+        private void AppendBotMessage(string message)
+        {
+            ChatDisplay.Text += $"🤖 Bot: {message}\n";
+            ScrollToEnd();
+        }
+
+        private async Task TypeBotMessageAsync(string message)
+        {
+            ChatDisplay.Text += "🤖 Bot: ";
+            foreach (char c in message)
+            {
+                ChatDisplay.Text += c;
+                ScrollToEnd();
+                await Task.Delay(20); // Typing effect delay
+            }
+            ChatDisplay.Text += "\n";
+        }
+
+        private void ScrollToEnd()
+        {
+            ScrollArea.ScrollToEnd();
         }
     }
 }
