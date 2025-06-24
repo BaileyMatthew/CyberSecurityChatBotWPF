@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 using CybersecurityBot.Bot;
-using CybersecurityBot.Helpers;
+using CyberSecurityChatBotWPF.Views; // ✅ FIXED NAMESPACE (match QuizWindow)
 
 namespace CyberSecurityChatBotWPF
 {
@@ -14,10 +14,8 @@ namespace CyberSecurityChatBotWPF
         {
             InitializeComponent();
             bot = new ChatBot();
-
             AppendBotMessage("Hello! I'm your Cybersecurity Assistant. 💻\nAsk me anything about phishing, malware, VPNs, and more.");
-
-            Loaded += (s, e) => UserInput.Focus(); // Auto-focus on input box
+            Loaded += (s, e) => UserInput.Focus();
         }
 
         private async void SendButton_Click(object sender, RoutedEventArgs e)
@@ -34,12 +32,19 @@ namespace CyberSecurityChatBotWPF
             UserInput.Focus();
         }
 
+        private void StartQuiz_Click(object sender, RoutedEventArgs e)
+        {
+            var quizWindow = new QuizWindow();
+            quizWindow.ShowDialog();
+            AppendBotMessage("Hope you enjoyed the quiz! Ask me anything else you'd like to know.");
+        }
+
         private void UserInput_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
                 SendButton_Click(sender, e);
-                e.Handled = true; // Prevent beep sound
+                e.Handled = true;
             }
         }
 
@@ -62,7 +67,7 @@ namespace CyberSecurityChatBotWPF
             {
                 ChatDisplay.Text += c;
                 ScrollToEnd();
-                await Task.Delay(20); // Typing effect delay
+                await Task.Delay(20);
             }
             ChatDisplay.Text += "\n";
         }

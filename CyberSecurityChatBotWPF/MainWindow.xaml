@@ -27,6 +27,21 @@
 
         <!-- Input Area -->
         <DockPanel Grid.Row="1" LastChildFill="True">
+
+            <!-- Start Quiz Button -->
+            <Button Content="Start Quiz"
+                    Width="100"
+                    Height="35"
+                    FontSize="14"
+                    FontWeight="Bold"
+                    Click="StartQuiz_Click"
+                    Background="#4CAF50"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Margin="0,0,10,0"
+                    DockPanel.Dock="Left"/>
+
+            <!-- User Input Box -->
             <TextBox x:Name="UserInput"
                      Height="35"
                      FontSize="14"
@@ -38,9 +53,11 @@
                      Foreground="White"
                      BorderBrush="#555"
                      BorderThickness="1"
-                     Width="600"
+                     Width="500"
                      DockPanel.Dock="Left"
                      KeyDown="UserInput_KeyDown"/>
+
+            <!-- Send Button -->
             <Button Content="Send"
                     Width="100"
                     Height="35"
